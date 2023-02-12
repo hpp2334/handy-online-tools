@@ -1,0 +1,9 @@
+.mainCard {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    border-radius: 4px;
+    background-color: white;
+    box-shadow: 2px 2px 10px rgba(204, 204, 204, 0.37);
+    overflow-y: auto;
+}
