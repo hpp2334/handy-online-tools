@@ -134,7 +134,7 @@ const useChecksumFile = () => {
   );
 
   const checksum = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       if (files.length === 0) {
         return;
       }
@@ -144,49 +144,28 @@ const useChecksumFile = () => {
 
       for (const i in files) {
         const file = files[i];
-        const fileReader = new FileReader();
-        fileReader.readAsArrayBuffer(file);
-        fileReader.onload = async function (ev) {
-          const buf = this.result;
-          if (!buf || typeof buf === "string") {
-            throw Error("[bug] buf is not buffer");
-          }
-          const res = await bridgeFileService.provideBlob(
-            new Uint8Array(buf),
-            async (blob_id) => {
-              return await bridgeService.call(batchDigest, {
-                typs: digestTypes,
-                blob_id,
-              });
-            }
-          );
-          _digestResMapRef.current.set(file, {
-            opKey: "done-" + i,
-            name: file.name,
-            status: "done",
-            list: res,
-          });
-          forceUpdate();
-        };
-        fileReader.onprogress = function (ev) {
+        const { blob_id, loaded_rx } = bridgeFileService.provideBlob(file);
+
+        loaded_rx.recv((loaded) => {
           _digestResMapRef.current.set(file, {
             opKey: "loading-" + i,
             name: file.name,
             status: "loading",
-            progress: (ev.loaded / ev.total) * 100,
+            progress: (loaded / file.size) * 100,
           });
           forceUpdate();
-        };
-        fileReader.onerror = function (ev) {
-          _digestResMapRef.current.set(file, {
-            opKey: "error-" + i,
-            name: file.name,
-            status: "error",
-            error: ev.target?.error?.message ?? "Unknown error",
-          });
-          forceUpdate();
-          console.error("fileReader error:", ev.target?.error);
-        };
+        });
+        const res = await bridgeService.call(batchDigest, {
+          typs: digestTypes,
+          blob_id,
+        });
+        _digestResMapRef.current.set(file, {
+          opKey: "done-" + i,
+          name: file.name,
+          status: "done",
+          list: res,
+        });
+        forceUpdate();
       }
     },
     [digestTypes]

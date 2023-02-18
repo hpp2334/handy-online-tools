@@ -1,6 +1,4 @@
-use std::{
-    ops::Add,
-};
+use std::ops::Add;
 
 use md5::{
     self,
@@ -11,12 +9,9 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
+use wasm_bindgen::prelude::*;
 
-use wasm_bindgen::{prelude::*};
-
-use crate::{
-    bridge::{BridgeCall, BridgeCode, BridgeFileStream},
-};
+use crate::bridge::{BridgeCall, BridgeCode, BridgeFileStream};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 #[wasm_bindgen]
@@ -46,37 +41,55 @@ impl BridgeCall for BatchDigest {
     type Ret = Vec<DigestResultItem>;
 }
 
-fn digest_impl<D>(mut digest: D, blob_id: i32) -> String
-where
+fn update_digest_impl<D>(
+    digest_container: &mut Option<D>,
+    items: &mut Vec<DigestResultItem>,
+    data: &Option<Vec<u8>>,
+    typ: DigestType,
+) where
     D: Digest + Send + 'static,
     D::OutputSize: Add,
     <<D as OutputSizeUser>::OutputSize as Add>::Output: ArrayLength<u8>,
 {
-    let mut stream = BridgeFileStream::new(blob_id);
-    while let Some(data) = stream.next() {
-        digest.update(data);
+    if digest_container.is_none() {
+        let _ = digest_container.insert(D::new());
     }
-    let hash = digest.finalize();
-    let hash = format!("{:X}", hash);
-    hash
+    let mut digest = digest_container.take().unwrap();
+    if let Some(data) = data {
+        digest.update(data);
+        let _ = digest_container.insert(digest);
+    } else {
+        let hash = digest.finalize();
+        let hash = format!("{:X}", hash);
+        items.push(DigestResultItem {
+            typ: typ as i32,
+            val: hash,
+        });
+    }
 }
 
 pub async fn batch_digest(
     BatchDigestArg { typs, blob_id }: BatchDigestArg,
 ) -> Vec<DigestResultItem> {
-    let mut items: Vec<DigestResultItem> = Default::default();
-    for typ in typs {
-        let typ = <DigestType as FromPrimitive>::from_i32(typ).unwrap();
-        let val = match typ {
-            DigestType::MD5 => digest_impl(md5::Md5::new(), blob_id),
-            DigestType::SHA1 => digest_impl(sha1::Sha1::new(), blob_id),
-            DigestType::SHA256 => digest_impl(sha2::Sha256::new(), blob_id),
-        };
+    let mut stream = BridgeFileStream::new(blob_id);
 
-        items.push(DigestResultItem {
-            typ: typ as i32,
-            val,
-        });
+    let mut md5_con: Option<md5::Md5> = Default::default();
+    let mut sha1_con: Option<sha1::Sha1> = Default::default();
+    let mut sha256_con: Option<sha2::Sha256> = Default::default();
+    let mut items: Vec<DigestResultItem> = Default::default();
+    loop {
+        let data = stream.next().await;
+        for typ in &typs {
+            let typ = <DigestType as FromPrimitive>::from_i32(*typ).unwrap();
+            match typ {
+                DigestType::MD5 => update_digest_impl(&mut md5_con, &mut items, &data, typ),
+                DigestType::SHA1 => update_digest_impl(&mut sha1_con, &mut items, &data, typ),
+                DigestType::SHA256 => update_digest_impl(&mut sha256_con, &mut items, &data, typ),
+            };
+        }
+        if data.is_none() {
+            break;
+        }
     }
 
     items

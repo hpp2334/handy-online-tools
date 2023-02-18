@@ -25,42 +25,41 @@ extern "C" {
     pub fn send_ret(code: i32, ret: JsValue, call_id: i32);
 
     #[wasm_bindgen(js_namespace = _Bridge)]
-    pub fn build_file_stream(blob_id: i32) -> i32;
-
-    #[wasm_bindgen(js_namespace = _Bridge)]
-    pub fn next_file_chunk(stream_id: i32) -> Option<Box<[u8]>>;
+    pub async fn next_file_chunk(blob_id: i32) -> JsValue;
 }
 
 #[cfg(target_arch = "wasm32")]
 pub struct BridgeFileStream {
-    stream_id: i32,
+    blob_id: i32,
 }
 
 #[cfg(target_arch = "wasm32")]
 impl BridgeFileStream {
     pub fn new(blob_id: i32) -> Self {
-        Self {
-            stream_id: build_file_stream(blob_id),
-        }
+        Self { blob_id }
     }
 
-    pub fn next(&mut self) -> Option<Box<[u8]>> {
-        next_file_chunk(self.stream_id)
+    pub async fn next(&mut self) -> Option<Vec<u8>> {
+        let val = next_file_chunk(self.blob_id).await;
+        let ret: Option<serde_bytes::ByteBuf> = serde_wasm_bindgen::from_value(val).unwrap();
+        let ret = ret.map(|v| v.to_vec());
+
+        ret
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub struct BridgeFileStream {
-    stream_id: i32,
+    blob_id: i32,
     has_read: bool,
 }
 #[cfg(not(target_arch = "wasm32"))]
-static BLOBS_FOR_TEST: Lazy<Mutex<HashMap<i32, Box<[u8]>>>> = Lazy::new(Default::default);
+static BLOBS_FOR_TEST: Lazy<Mutex<HashMap<i32, Vec<u8>>>> = Lazy::new(Default::default);
 #[cfg(not(target_arch = "wasm32"))]
 static ALLOC_BLOB_ID: AtomicI32 = AtomicI32::new(0);
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn insert_blob_for_test(data: Box<[u8]>) -> i32 {
+pub fn insert_blob_for_test(data: Vec<u8>) -> i32 {
     let id = ALLOC_BLOB_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     BLOBS_FOR_TEST.lock().unwrap().insert(id, data);
     id
@@ -70,19 +69,19 @@ pub fn insert_blob_for_test(data: Box<[u8]>) -> i32 {
 impl BridgeFileStream {
     pub fn new(blob_id: i32) -> Self {
         Self {
-            stream_id: blob_id,
+            blob_id,
             has_read: false,
         }
     }
 
-    pub fn next(&mut self) -> Option<Box<[u8]>> {
+    pub async fn next(&mut self) -> Option<Vec<u8>> {
         if self.has_read {
             None
         } else {
             let data = BLOBS_FOR_TEST
                 .lock()
                 .unwrap()
-                .get(&self.stream_id)
+                .get(&self.blob_id)
                 .unwrap()
                 .clone();
             self.has_read = true;

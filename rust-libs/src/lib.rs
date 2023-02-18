@@ -1,4 +1,4 @@
-use crate::core::{spawn};
+use crate::core::spawn;
 use std::future::Future;
 
 use bridge::{send_ret, BridgeCall};
@@ -21,8 +21,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub fn call_impl<C, R, F: Fn(C::Arg) -> R + 'static>(_: C, arg: JsValue, call_id: i32, func: F)
 where
     C: BridgeCall,
-    R: Future<Output = C::Ret> + Send,
-    F: Fn(C::Arg) -> R + Send + Sync + 'static,
+    R: Future<Output = C::Ret>,
+    F: Fn(C::Arg) -> R + Sync + 'static,
 {
     let arg: C::Arg = serde_wasm_bindgen::from_value(arg).unwrap();
     spawn(async move {
