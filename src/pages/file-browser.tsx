@@ -140,7 +140,7 @@ function FileTreeInternal(props: FileTreeInternalProps) {
         return (
           <React.Fragment key={item.path}>
             <div
-              style={{ paddingLeft: indent * 15 }}
+              style={{ paddingLeft: indent * 15 + 10 }}
               className={classNames({
                 [styles.item]: true,
                 [styles.selected]: isSelected,

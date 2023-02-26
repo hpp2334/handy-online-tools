@@ -19,6 +19,7 @@ const config = [
 
 export interface FeaturesProps {
   style?: React.CSSProperties;
+  onClickItem?: () => void;
 }
 
 export function Features(props: FeaturesProps) {
@@ -31,6 +32,7 @@ export function Features(props: FeaturesProps) {
           className={styles.item}
           onClick={() => {
             router.push(conf.path);
+            props.onClickItem?.();
           }}
         >
           <conf.Icon className={styles.icon} />

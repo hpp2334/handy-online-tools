@@ -2,19 +2,49 @@
 
 .appbar {
   position: absolute;
+  display: flex;
+  align-items: center;
   top: 0;
   left: 0;
   right: 0;
-  height: 100px;
+  height: 60px;
   background-color: $color-gray;
   overflow: hidden;
+  padding-top: 45px;
+  padding-left: 20px;
+
+  .icon {
+    font-size: 24px;
+    fill: white;
+    margin-right: 15px;
+    cursor: pointer;
+  }
 
   .title {
-    margin-top: 45px;
-    margin-left: 20px;
     color: white;
     font-size: 28px;
     font-weight: 700;
     user-select: none;
+  }
+}
+
+.appbarMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $color-gray;
+  padding: 20px;
+  padding-top: 80px;
+
+  .closeBtn {
+    display: block;
+    position: absolute;
+    right: 30px;
+    top: 30px;
+    fill: white;
+    font-size: 28px;
+    cursor: pointer;
   }
 }
