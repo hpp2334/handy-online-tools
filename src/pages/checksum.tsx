@@ -26,6 +26,7 @@ import { getNumbericEnumValues } from "@/utils/common";
 import { ProgressBar } from "@/widgets/progress";
 import { SEOHead } from "@/widgets/seo";
 import { FileDrop } from "@/widgets/file-drop";
+import { AppBar } from "@/widgets/appbar";
 
 const AllDigestTypes = getNumbericEnumValues(DigestType);
 
@@ -300,8 +301,8 @@ export default function Checksum() {
         subTitle="Checksum"
         description="calculate file checksum, support MD5, SHA-1, SHA-256"
       />
+      <AppBar title="Checksum" />
       <CommonLayout>
-        <Title>Checksum</Title>
         {/* unimplment yet */}
         {/* <Tabs
           items={[

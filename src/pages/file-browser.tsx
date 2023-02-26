@@ -27,6 +27,7 @@ import { materialLight } from "@uiw/codemirror-theme-material";
 import styles from "./file-browser.module.scss";
 import classNames from "classnames";
 import Loading from "@/widgets/loading";
+import { AppBar } from "@/widgets/appbar";
 
 const enum Status {
   Pending,
@@ -61,6 +62,7 @@ function useFileBrowser() {
     setParsedEntry(null);
     setSelectedEntry(null);
     setStatus(Status.Pending);
+    expandedEntryPathsRef.current.clear();
   };
 
   const loadFile = async (files: File[]) => {
@@ -271,8 +273,8 @@ export default function FileBrowser() {
         subTitle="File Browser"
         description="An online viewer of zip, json, ..."
       />
+      <AppBar title="File Browser" />
       <CommonLayout>
-        <Title>File Browser</Title>
         <div className={styles.toolbar}>
           <Button disabled={state.status !== Status.Loaded} onClick={reset}>
             Reset
