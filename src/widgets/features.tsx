@@ -27,8 +27,9 @@ export function Features(props: FeaturesProps) {
 
   return (
     <div className={styles.features} style={props.style}>
-      {config.map((conf) => (
+      {config.map((conf, index) => (
         <div
+          key={index}
           className={styles.item}
           onClick={() => {
             router.push(conf.path);
