@@ -15,6 +15,7 @@ const nextConfig = {
       asyncWebAssembly: true,
       layers: true,
     };
+    config.resolve.fallback = { fs: false, path: false };
     return config;
   },
 };

@@ -1,0 +1,18 @@
+
+@import "../widgets/global.module.scss";
+
+.fileDrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    height: 100%;
+    cursor: pointer;
+    user-select: none;
+    color: $text-color-primary;
+
+    &.disabled {
+        color: rgb(184, 184, 184);
+        cursor: not-allowed;
+    }
+}

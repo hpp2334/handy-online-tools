@@ -25,6 +25,7 @@ import classNames from "classnames";
 import { getNumbericEnumValues } from "@/utils/common";
 import { ProgressBar } from "@/widgets/progress";
 import { SEOHead } from "@/widgets/seo";
+import { FileDrop } from "@/widgets/file-drop";
 
 const AllDigestTypes = getNumbericEnumValues(DigestType);
 
@@ -197,7 +198,6 @@ function ChecksumFiles() {
     updateCheckedDigestType,
     reset,
   } = useChecksumFile();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className={styles.checksumFiles}>
@@ -220,47 +220,20 @@ function ChecksumFiles() {
               ))}
             </div>
           </div>
-          <div
-            className={classNames({
-              [styles.dropFile]: true,
-              [styles.disabled]: disableSelectFileType !== null,
-            })}
-            onDrop={(ev) => {
-              // prevent default action (open as link for some elements)
-              ev.preventDefault();
-              if (disableSelectFileType !== null) {
-                return;
-              }
-              const files = Array.from(ev.dataTransfer.files);
-              checksum(files);
-            }}
-            onDragOver={(ev) => {
-              // prevent default to allow drop
-              ev.preventDefault();
-            }}
-            onClick={() => {
-              if (disableSelectFileType !== null) {
-                return;
-              }
-              inputRef.current?.click();
-            }}
-          >
-            {disableSelectFileType === DisableSelectFileType.NonTypes && (
-              <>Should select at least one checksum type first</>
-            )}
-            {disableSelectFileType === null && (
-              <>Select file or drop file here to checksum</>
-            )}
-          </div>
-          <input
-            ref={inputRef}
-            style={{ display: "none" }}
-            type="file"
+          <FileDrop
             multiple
-            onChange={(ev) => {
-              const files = Array.from(ev.target.files ?? []);
-              checksum(files);
-            }}
+            disabled={disableSelectFileType !== null}
+            onSelectOrDrop={checksum}
+            contentRender={() => (
+              <>
+                {disableSelectFileType === DisableSelectFileType.NonTypes && (
+                  <>Should select at least one hash type first</>
+                )}
+                {disableSelectFileType === null && (
+                  <>Select file or drop file here to calcute checksum</>
+                )}
+              </>
+            )}
           />
         </>
       )}

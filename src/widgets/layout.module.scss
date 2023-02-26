@@ -1,11 +1,15 @@
 .layout {
     display: flex;
     height: 100%;
+    max-width: 100%;
 
     .main {
         display: flex;
+        max-width: 100%;
+        max-height: 100%;
         flex-direction: column;
         flex-grow: 1;
         padding: 20px;
+        box-sizing: border-box;
     }
 }
