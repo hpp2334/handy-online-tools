@@ -22,7 +22,9 @@ function AppbarMenu({
   return (
     <div className={styles.appbarMenu}>
       <BiX className={styles.closeBtn} onClick={onClose} />
-      <Features onClickItem={onClose} />
+      <div className={styles.internal}>
+        <Features onClickItem={onClose} />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { BiHash, BiFileBlank } from "react-icons/bi";
+import { BiHash, BiFileBlank, BiClipboard } from "react-icons/bi";
 import styles from "./features.module.scss";
 
 const config = [
@@ -14,6 +14,12 @@ const config = [
     Icon: BiFileBlank,
     path: "/file-browser",
     description: "View archiver, code file, image file",
+  },
+  {
+    name: "Clipboard",
+    Icon: BiClipboard,
+    path: "/clipboard",
+    description: "Read content in clipboard",
   },
 ];
 

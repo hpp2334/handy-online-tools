@@ -39,3 +39,21 @@
   font-size: 14px;
   padding: 4px;
 }
+
+.actionIconButton {
+  $s: 16px;
+
+  width: $s;
+  height: $s;
+  border-radius: $s;
+  padding: 6px;
+  cursor: pointer;
+
+  .icon {
+    fill: $text-color-primary;
+  }
+
+  &:hover {
+    background-color: $color-gray-light;
+  }
+}
