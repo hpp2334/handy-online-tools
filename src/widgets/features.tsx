@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { BiHash, BiFileBlank, BiClipboard } from "react-icons/bi";
+import { GiTransform } from "react-icons/gi";
 import styles from "./features.module.scss";
 
 const config = [
@@ -20,6 +21,12 @@ const config = [
     Icon: BiClipboard,
     path: "/clipboard",
     description: "Read content in clipboard",
+  },
+  {
+    name: "Protobuf",
+    Icon: GiTransform,
+    path: "/protobuf",
+    description: "Online protobuf encoder",
   },
 ];
 
