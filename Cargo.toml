@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["ui", "web", "desktop", "mobile"]
+
+[workspace.dependencies]
+dioxus = { version = "0.6.0" }
+zip = { version = "3.0.0", default-features = false, features = [
+    "aes-crypto",
+    "deflate",
+    "deflate-flate2",
+] }
+getrandom = { version = "0.3.3", features = ["wasm_js"] }
+
+# workspace
+ui = { path = "ui" }
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
