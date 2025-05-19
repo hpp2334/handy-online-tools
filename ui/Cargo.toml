@@ -7,3 +7,5 @@ edition = "2021"
 dioxus = { workspace = true }
 zip = { workspace = true }
 getrandom = { workspace = true }
+serde = { workspace = true }
+futures = { workspace = true }

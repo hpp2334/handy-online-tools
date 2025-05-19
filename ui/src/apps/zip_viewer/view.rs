@@ -1,6 +1,10 @@
-use crate::{AppViewProps, AppWindowId, APP_WINDOW_MANAGER};
+use crate::{
+    AppViewProps, AppWindowId, Point, APP_MANAGER, APP_WINDOW_MANAGER, BLOB_MANAGER,
+    RESOURCE_MANAGER,
+};
 
 use super::core::{Archiver, FileEntry};
+use crate::views::FileDropArea;
 use dioxus::html::{FileEngine, HasFileData};
 use dioxus::logger::tracing;
 use dioxus::prelude::*;
@@ -12,16 +16,43 @@ use zip::ZipArchive;
 
 #[derive(Props, Clone, PartialEq)]
 struct VFileEntryProps {
+    archiver: Signal<Archiver>,
     entry: FileEntry,
 }
-pub fn VFileEntry(VFileEntryProps { entry }: VFileEntryProps) -> Element {
-    // Initial expansion only for the root or directory entry with children
+pub fn VFileEntry(
+    VFileEntryProps {
+        mut archiver,
+        entry,
+    }: VFileEntryProps,
+) -> Element {
+    let file_path = entry.path.clone();
     let mut expanded = use_signal(|| entry.path == "/".to_string());
 
     let toggle_expanded = move |_| {
         if entry.is_dir {
             expanded.set(!expanded());
         }
+    };
+
+    let handle_entry_click = move |_| {
+        let mut res_mgr = RESOURCE_MANAGER.write();
+        let data = archiver
+            .write()
+            .read_file_by_path(file_path.as_str())
+            .unwrap();
+        let res_id = res_mgr.allocate(data);
+
+        let extension = ".".to_string() + file_path.split(".").last().unwrap_or("bin");
+
+        spawn(async move {
+            let app_id = APP_MANAGER.read().select_default(extension.as_str());
+
+            if let Some(app_id) = app_id {
+                APP_WINDOW_MANAGER
+                    .write()
+                    .create(app_id, Point::new(20.0, 20.0), Some(res_id));
+            }
+        });
     };
 
     if entry.is_dir {
@@ -51,7 +82,7 @@ pub fn VFileEntry(VFileEntryProps { entry }: VFileEntryProps) -> Element {
                 }
                 if expanded {
                     for child in sorted_children {
-                        VFileEntry { entry: child }
+                        VFileEntry { archiver, entry: child }
                     }
                 }
             }
@@ -60,6 +91,7 @@ pub fn VFileEntry(VFileEntryProps { entry }: VFileEntryProps) -> Element {
         rsx! {
             div {
                 class: "ml-8",
+                onclick: handle_entry_click,
                 span {
                     "{entry.name}"
                 }
@@ -95,88 +127,24 @@ fn handle_file(
     });
 }
 
-#[derive(Props, PartialEq, Eq, Clone)]
-struct FileDropAreaProps {
-    id: AppWindowId,
-    archiver: Signal<Archiver>,
-    error_message: Signal<Option<String>>,
-}
-
-fn FileDropArea(props: FileDropAreaProps) -> Element {
-    let id = props.id;
-    let archiver = props.archiver;
-    let error_message = props.error_message;
-
-    let mut is_dragging = use_signal(|| false);
-
-    let handle_drag_enter = move |event: DragEvent| {
-        event.stop_propagation();
-        event.prevent_default();
-    };
-
-    let handle_drag_over = move |event: DragEvent| {
-        event.stop_propagation();
-        event.prevent_default();
-
-        is_dragging.set(true);
-    };
-
-    let handle_drag_leave = move |_| {
-        is_dragging.set(false);
-    };
-
-    let handle_drop = move |event: DragEvent| {
-        event.stop_propagation();
-        event.prevent_default();
-
-        is_dragging.set(false);
-        if let Some(file_engine) = &event.files() {
-            if let Some(file_name) = file_engine.files().first() {
-                handle_file(id, file_engine, file_name.as_str(), archiver, error_message);
-            }
-        }
-    };
-
-    let el = if *is_dragging.read() {
-        rsx! {
-             p {
-                class: "text-lg text-gray-700",
-                "Dragging"
-            }
-        }
-    } else {
-        rsx! {
-            label {
-                r#for: "file-upload",
-                class: "font-bold py-2 px-4",
-                "Drop file here"
-            }
-        }
-    };
-
-    rsx! {
-        div {
-            class: {
-                let base = "flex flex-col items-center justify-center w-full h-full border-2 border-dashed rounded";
-                if *is_dragging.read() { format!("{} border-blue-500 bg-blue-100", base) } else { format!("{} border-gray-300", base) }
-            },
-            ondrop: handle_drop,
-            ondragenter: handle_drag_enter,
-            ondragover: handle_drag_over,
-            ondragleave: handle_drag_leave,
-
-            {el}
-        }
-    }
-}
-
-pub fn VView(props: AppViewProps) -> Element {
+pub(super) fn VView(props: AppViewProps) -> Element {
     let id = props.id;
 
     let mut archiver = use_signal(|| Archiver::new());
     let mut error_message = use_signal(|| None::<String>);
 
-    let child = if let Some(error) = &*error_message.read() {
+    let on_read = move |(name, bytes): (String, Vec<u8>)| {
+        error_message.set(None);
+        if let Err(e) = archiver.write().load_zip(bytes) {
+            error_message.set(Some(e));
+        } else {
+            APP_WINDOW_MANAGER.write().set_title(id, name);
+        }
+    };
+
+    let error_message = error_message.read();
+
+    if let Some(error) = error_message.clone() {
         rsx! {
             div {
                 class: "text-red-500 mt-4",
@@ -186,21 +154,13 @@ pub fn VView(props: AppViewProps) -> Element {
     } else if let Some(root) = archiver.read().get_root_entry() {
         rsx! {
             div {
-                class: "",
-                VFileEntry { entry: root.clone() }
+                class: "p-4 w-full h-full overflow-y-auto",
+                VFileEntry { archiver, entry: root.clone() }
             }
         }
     } else {
         rsx! {
-            FileDropArea { id, archiver, error_message }
-        }
-    };
-
-    rsx! {
-        div {
-            class: "p-4 w-full h-full overflow-y-auto",
-
-            {child}
+            FileDropArea { id, on_read }
         }
     }
 }

@@ -1,14 +1,22 @@
+use std::any::Any;
+
 use dioxus::{
     prelude::*,
     signals::{Global, GlobalSignal, Readable},
 };
 
-use crate::{app_registry::APP_MANAGER, Point, Rect};
+use crate::{registry::APP_MANAGER, Point, Rect};
 
-use super::AppId;
+use super::{AppId, ResourceId};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct AppWindowId(u32);
+
+impl AppWindowId {
+    pub fn raw(&self) -> u32 {
+        self.0
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum HitTestPosition {
@@ -34,6 +42,7 @@ pub struct AppWindow {
     pub app_id: AppId,
     pub title: String,
     pub bounds: Rect,
+    pub resource_id: Option<ResourceId>,
 }
 
 #[derive(Debug)]
@@ -45,10 +54,8 @@ pub struct AppWindowManager {
 #[derive(Props, PartialEq, Clone)]
 pub struct AppViewProps {
     pub id: AppWindowId,
+    pub initial_data: Option<ResourceId>,
 }
-
-pub static APP_WINDOW_MANAGER: GlobalSignal<AppWindowManager> =
-    Global::new(|| AppWindowManager::new());
 
 impl AppWindowManager {
     pub fn new() -> Self {
@@ -58,7 +65,12 @@ impl AppWindowManager {
         }
     }
 
-    pub fn create(&mut self, app_id: AppId, offset: Point) -> AppWindowId {
+    pub fn create(
+        &mut self,
+        app_id: AppId,
+        offset: Point,
+        resource_id: Option<ResourceId>,
+    ) -> AppWindowId {
         let app_mgr = APP_MANAGER.read();
 
         let id = AppWindowId(self.alloc_id);
@@ -74,6 +86,7 @@ impl AppWindowManager {
                 app_cfg.default_size.x,
                 app_cfg.default_size.y,
             ),
+            resource_id,
         };
         self.windows.push(window);
         id

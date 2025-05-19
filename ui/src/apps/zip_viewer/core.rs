@@ -1,5 +1,6 @@
+use dioxus::logger::tracing;
 use std::collections::HashMap;
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use std::sync::Arc;
 use zip::ZipArchive;
 
@@ -68,11 +69,7 @@ impl Archiver {
                             .entry(component.to_string())
                             .or_insert_with(|| FileEntry {
                                 name: component.to_string(),
-                                path: if current_dir.path == "/" {
-                                    format!("/{}", component)
-                                } else {
-                                    format!("{}/{}", current_dir.path, component)
-                                },
+                                path: file.name().to_string(),
                                 is_dir,
                                 children: HashMap::new(),
                             });
@@ -85,5 +82,31 @@ impl Archiver {
 
     pub fn get_root_entry(&self) -> Option<&FileEntry> {
         self.root_entry.as_ref()
+    }
+
+    pub fn read_file_by_path(&mut self, path: &str) -> Result<Vec<u8>, String> {
+        if let Some(archive) = &mut self.zip_archive {
+            match archive.by_name(path) {
+                Ok(mut file) => {
+                    if file.is_dir() {
+                        Err(format!("Path '{}' is a directory.", path))
+                    } else {
+                        let mut data = Vec::new();
+
+                        if let Err(e) = file.read_to_end(&mut data) {
+                            Err(format!("Error reading file data for '{}': {}", path, e))
+                        } else {
+                            Ok(data)
+                        }
+                    }
+                }
+                Err(e) => Err(format!(
+                    "File not found in archive at path '{}': {}",
+                    path, e
+                )),
+            }
+        } else {
+            Err("Zip archive not loaded.".to_string())
+        }
     }
 }

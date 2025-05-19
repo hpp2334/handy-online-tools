@@ -7,9 +7,8 @@ use dioxus::{
 };
 
 use crate::{
-    app_registry::APP_MANAGER, apps::zip_viewer::ZIP_VIEWER_ID,
-    compute_new_bounds_by_hit_test_result, AppId, AppWindowId, AppWindowManager, HitTestPosition,
-    Point, Rect, APP_WINDOW_MANAGER,
+    apps::zip_viewer::ZIP_VIEWER_ID, compute_new_bounds_by_hit_test_result, registry::APP_MANAGER,
+    AppId, AppWindowId, AppWindowManager, HitTestPosition, Point, Rect, APP_WINDOW_MANAGER,
 };
 
 #[derive(Props, PartialEq, Clone)]
@@ -27,7 +26,7 @@ fn VAppLauncher(props: VAppLauncherProps) -> Element {
             let coord = e.coordinates().page();
 
             let mut manager = manager.write();
-            let id = manager.create(id, Point::new(coord.x, coord.y));
+            let id = manager.create(id, Point::new(coord.x, coord.y), None);
             manager.activate(id);
         }
     };
@@ -56,8 +55,9 @@ struct VAppWindowProps {
 fn VAppWindow(props: VAppWindowProps) -> Element {
     let mut win_mgr = APP_WINDOW_MANAGER.signal();
     let app_mgr = APP_MANAGER.read();
+    let id = props.id;
 
-    let win = win_mgr.with(|manager| manager.get(props.id).cloned());
+    let win = win_mgr.read().get(id).cloned();
 
     let Some(win) = win else {
         return rsx! {};
@@ -72,10 +72,13 @@ fn VAppWindow(props: VAppWindowProps) -> Element {
     let left = bounds.left;
     let width = bounds.width();
     let height = bounds.height();
+    let initial_data = win.resource_id;
 
     let mut handle_close = move |_| {
-        win_mgr.write().close(props.id);
+        win_mgr.write().close(id);
     };
+
+    let V = app_cfg.render;
 
     rsx! {
         div {
@@ -107,11 +110,16 @@ fn VAppWindow(props: VAppWindowProps) -> Element {
             div {
                 flex_grow: "1",
                 class: "bg-white overflow-hidden",
-                onmousedown: |e| {
+                onmousedown: move |e| {
                     e.stop_propagation();
+
+                    win_mgr.write().activate(id);
                 },
 
-                {(app_cfg.render)(AppViewProps { id: win.id })}
+                V {
+                    id,
+                    initial_data,
+                }
             }
         }
     }
@@ -124,6 +132,7 @@ struct DraggingWindowState {
     initial_bounds: Rect,
 }
 fn VApps() -> Element {
+    let app_mgr = APP_MANAGER.signal();
     let mut manager = APP_WINDOW_MANAGER.signal();
 
     let mut dragging_state = use_signal::<Option<DraggingWindowState>>(|| None);
@@ -188,14 +197,8 @@ fn VApps() -> Element {
         dragging_state.set(None);
         cursor_style.set("default".to_string());
     };
-
-    let children = manager.read().list_ids().into_iter().map(|id| {
-        rsx! {
-            VAppWindow {
-                id,
-            }
-        }
-    });
+    let app_ids = app_mgr.read().list_ids();
+    let window_ids = manager.read().list_ids();
 
     rsx! {
         div {
@@ -209,13 +212,23 @@ fn VApps() -> Element {
             onmouseup: handle_mouse_up,
             cursor: "{cursor_style.read()}",
 
-            VAppLauncher {
-                id: ZIP_VIEWER_ID
+            Fragment {
+                for id in app_ids {
+                    VAppLauncher {
+                        key: "{id.raw()}",
+                        id
+                    }
+                }
             }
 
-            {children}
-
-
+            Fragment {
+                for id in window_ids {
+                    VAppWindow {
+                        key: "{id.raw()}",
+                        id,
+                    }
+                }
+            }
         }
     }
 }

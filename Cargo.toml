@@ -10,6 +10,8 @@ zip = { version = "3.0.0", default-features = false, features = [
     "deflate-flate2",
 ] }
 getrandom = { version = "0.3.3", features = ["wasm_js"] }
+serde = { version = "1.0", features = ["derive"] }
+futures = "0.3.31"
 
 # workspace
 ui = { path = "ui" }
