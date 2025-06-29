@@ -44,4 +44,9 @@ class TAppWindowModel extends ChangeNotifier {
     appWin.bounds = bounds;
     notifyListeners();
   }
+
+  void setTitle(String name) {
+    appWin.name = name;
+    notifyListeners();
+  }
 }

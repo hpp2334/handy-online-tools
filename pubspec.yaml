@@ -36,6 +36,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   fixnum: ^1.1.1
   provider: ^6.1.5
+  file_picker: ^10.2.0
+  archive: ^4.0.7
+  desktop_drop: ^0.6.0
 
 dev_dependencies:
   flutter_test:
