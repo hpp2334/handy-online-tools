@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:handy_online_tools/apps.dart';
+import 'package:handy_online_tools/core/rust_libs.dart';
 import 'package:handy_online_tools/models/app.dart';
 import 'package:handy_online_tools/models/app_window.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  final r = await getRustLibs();
+  r.greet();
+
   runApp(
     MultiProvider(
       providers: [

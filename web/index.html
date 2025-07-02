@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -27,12 +28,20 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>handy_online_tools</title>
   <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
+  <script src="pkg/rust_libs.js" type="module"></script>
+  <script type="module">
+    import init from "./pkg/rust_libs.js"
+    const wasm = init()
+    window._rustLibs = wasm
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>
