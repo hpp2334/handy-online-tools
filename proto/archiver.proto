@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package hol.archiver;
+
+import "proto/core.proto";
+
+message ICOpenZipArg {
+    bytes data = 1;
+}
+
+message ICOpenZipRet {
+    TResource data = 1;
+}
+
+message ICQueryDirArg {
+    TResource archiver = 1;
+}
+
+message QueryDirItem {
+    string path = 1;
+}
+
+message ICQueryDirRet {
+    repeated QueryDirItem items = 1;
+}
+
+message ICLoadFileArg {
+    TResource archiver = 1;
+    string path = 2;
+}
+
+message ICLoadFileRet {
+    TBlobResource data = 1;
+}

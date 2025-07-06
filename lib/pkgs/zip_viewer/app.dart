@@ -1,25 +1,61 @@
-import 'package:archive/archive.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:handy_online_tools/core/rust_libs.dart';
+import 'package:handy_online_tools/generated/proto/archiver.pb.dart';
+import 'package:handy_online_tools/generated/proto/core.pb.dart';
 import 'package:handy_online_tools/models/app_window.dart';
 import 'package:provider/provider.dart';
 
+String _pkgId = "hol.archiver";
+
+class _ArchiveFile {
+  final String name;
+  final String path;
+
+  _ArchiveFile({required this.name, required this.path});
+}
+
+class _Archive {
+  final List<_ArchiveFile> entries = List.empty(growable: true);
+
+  _Archive(ICQueryDirRet r) {
+    for (final item in r.items) {
+      entries.add(
+        _ArchiveFile(path: item.path, name: item.path.split('/').last),
+      );
+    }
+  }
+}
+
 enum _Status { pending, success, error }
+
+Future<ICOpenZipRet> _openZip(NativeApp app, ICOpenZipArg arg) async {
+  return invokeCommand(app, _pkgId, "open_zip", arg, ICOpenZipRet.fromBuffer);
+}
+
+Future<ICQueryDirRet> _queryDir(NativeApp app, ICQueryDirArg arg) async {
+  return invokeCommand(app, _pkgId, "query_dir", arg, ICQueryDirRet.fromBuffer);
+}
 
 class _Model extends ChangeNotifier {
   _Status _status = _Status.pending;
   String? _errorMessage;
-  Archive? _archive;
+  _Archive? _archive;
 
   _Status get status => _status;
-  Archive get archive => _archive!;
+  _Archive get archive => _archive!;
   String get errorMessage => _errorMessage!;
 
-  Future<void> handleDrop(DropItem item) async {
+  Future<void> handleDrop(NativeApp app, DropItem item) async {
     final data = await item.readAsBytes();
 
     try {
-      _archive = ZipDecoder().decodeBytes(data);
+      final handle = await _openZip(app, ICOpenZipArg(data: data));
+      final queried = await _queryDir(
+        app,
+        ICQueryDirArg(archiver: handle.data),
+      );
+      _archive = _Archive(queried);
       _status = _Status.success;
     } catch (e) {
       _errorMessage = e.toString();
@@ -56,9 +92,7 @@ class _ZipViewerWidgetState extends State<ZipViewerWidget> {
             case _Status.success:
               return _CoreWidget();
             case _Status.error:
-              return Center(
-                child: Column(children: [Text(model.errorMessage)]),
-              );
+              return _ErrorWidget(errorMessage: model.errorMessage);
           }
         },
       ),
@@ -82,8 +116,9 @@ class _PendingWidgetState extends State<_PendingWidget> {
           return;
         }
         final model = Provider.of<_Model>(context, listen: false);
+        final app = Provider.of<NativeApp>(context, listen: false);
         final file = details.files.first;
-        await model.handleDrop(file);
+        await model.handleDrop(app, file);
 
         if (!context.mounted) {
           return;
@@ -122,200 +157,235 @@ class _PendingWidgetState extends State<_PendingWidget> {
   }
 }
 
+class _ErrorWidget extends StatelessWidget {
+  final String errorMessage;
+
+  const _ErrorWidget({required this.errorMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    final model = Provider.of<_Model>(context, listen: false);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 50, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            errorMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, color: Colors.red),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              model.reset();
+            },
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CoreWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final model = Provider.of<_Model>(context);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Archive Contents',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () => model.reset(),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            child: _DirectoryTree(archive: model.archive),
-          ),
-        ),
-      ],
+      children: [Expanded(child: _FileTreeView(archive: model.archive))],
     );
   }
 }
 
-class _DirectoryTree extends StatefulWidget {
-  final Archive archive;
+class _FileTreeView extends StatefulWidget {
+  final _Archive archive;
 
-  const _DirectoryTree({required this.archive});
+  const _FileTreeView({required this.archive});
 
   @override
-  State<_DirectoryTree> createState() => _DirectoryTreeState();
+  State<_FileTreeView> createState() => _FileTreeViewState();
 }
 
-class _DirectoryTreeState extends State<_DirectoryTree> {
-  final Map<String, bool> _expandedDirs = {};
+class _FileTreeViewState extends State<_FileTreeView> {
+  late _FileTreeNode rootNode;
 
   @override
-  Widget build(BuildContext context) {
-    // Build a tree structure from the flat archive
-    final Map<String, List<ArchiveFile>> directoryStructure = {};
-
-    for (var file in widget.archive.files) {
-      final path = file.name;
-      final parts = path.split('/');
-
-      // Skip empty entries
-      if (parts.isEmpty || (parts.length == 1 && parts[0].isEmpty)) {
-        continue;
-      }
-
-      // Get the directory path (everything except the filename)
-      String dirPath = '';
-      if (parts.length > 1) {
-        dirPath = parts.sublist(0, parts.length - 1).join('/');
-      }
-
-      // Initialize the directory if it doesn't exist
-      directoryStructure[dirPath] = directoryStructure[dirPath] ?? [];
-
-      // Add the file to its directory
-      directoryStructure[dirPath]!.add(file);
-    }
-
-    // Build the tree widget
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: _buildDirectoryNode('', directoryStructure, 0),
-    );
+  void initState() {
+    super.initState();
+    rootNode = _buildFileTree(widget.archive.entries);
   }
 
-  Widget _buildDirectoryNode(
-    String path,
-    Map<String, List<ArchiveFile>> structure,
-    int level,
-  ) {
-    List<Widget> children = [];
+  _FileTreeNode _buildFileTree(List<_ArchiveFile> files) {
+    final root = _FileTreeNode(
+      name: 'root',
+      isDirectory: true,
+      path: '',
+      children: [],
+    );
 
-    // Get all subdirectories of current path
-    final subDirs = structure.keys
-        .where(
-          (dir) =>
-              dir.startsWith(path) &&
-              (path.isEmpty || dir.startsWith('$path/')) &&
-              dir != path &&
-              !dir.substring(path.isEmpty ? 0 : path.length + 1).contains('/'),
-        )
-        .toList();
+    for (final file in files) {
+      final pathParts = file.path.split('/');
+      _FileTreeNode currentNode = root;
 
-    // Sort subdirectories
-    subDirs.sort();
+      // Create or find each directory in the path
+      for (int i = 0; i < pathParts.length - 1; i++) {
+        final part = pathParts[i];
+        if (part.isEmpty) continue;
 
-    // Add subdirectory nodes
-    for (var dir in subDirs) {
-      final dirName = dir.substring(path.isEmpty ? 0 : path.length + 1);
-      final isExpanded = _expandedDirs[dir] ?? false;
-
-      children.add(
-        Padding(
-          padding: EdgeInsets.only(left: level * 16.0),
-          child: Row(
-            children: [
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _expandedDirs[dir] = !isExpanded;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Text(
-                    isExpanded ? '−' : '+',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _expandedDirs[dir] = !isExpanded;
-                  });
-                },
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 18,
-                      child: Icon(Icons.folder, color: Colors.amber, size: 16),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(dirName),
-                  ],
-                ),
-              ),
-            ],
+        _FileTreeNode? child = currentNode.children.firstWhere(
+          (node) => node.name == part && node.isDirectory,
+          orElse: () => _FileTreeNode(
+            name: part,
+            isDirectory: true,
+            path: pathParts.sublist(0, i + 1).join('/'),
+            children: [],
           ),
-        ),
-      );
+        );
 
-      if (isExpanded) {
-        children.add(_buildDirectoryNode(dir, structure, level + 1));
+        if (!currentNode.children.contains(child)) {
+          currentNode.children.add(child);
+        }
+
+        currentNode = child;
       }
-    }
 
-    // Add files in the current directory
-    final files = structure[path] ?? [];
-
-    // Sort files
-    files.sort((a, b) => a.name.compareTo(b.name));
-
-    for (var file in files) {
-      final fileName = file.name.split('/').last;
+      // Add the file
+      final fileName = pathParts.last;
       if (fileName.isNotEmpty) {
-        children.add(
-          Padding(
-            padding: EdgeInsets.only(
-              left: (level + 1) * 16.0 + 4,
-              top: 4,
-              right: 4,
-              bottom: 4,
-            ),
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 18,
-                  child: Icon(
-                    Icons.insert_drive_file,
-                    color: Colors.blue,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(fileName),
-              ],
-            ),
+        currentNode.children.add(
+          _FileTreeNode(
+            name: fileName,
+            isDirectory: false,
+            path: file.path,
+            children: [],
           ),
         );
       }
     }
 
+    // Sort child nodes - directories first, then files
+    _sortNodes(root);
+
+    return root;
+  }
+
+  void _sortNodes(_FileTreeNode node) {
+    node.children.sort((a, b) {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.compareTo(b.name);
+    });
+
+    for (final child in node.children) {
+      if (child.isDirectory) {
+        _sortNodes(child);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: rootNode.children.length,
+      itemBuilder: (context, index) {
+        return _FileTreeNodeWidget(node: rootNode.children[index], level: 0);
+      },
+    );
+  }
+}
+
+class _FileTreeNode {
+  final String name;
+  final bool isDirectory;
+  final String path;
+  final List<_FileTreeNode> children;
+
+  _FileTreeNode({
+    required this.name,
+    required this.isDirectory,
+    required this.path,
+    required this.children,
+  });
+}
+
+class _FileTreeNodeWidget extends StatefulWidget {
+  final _FileTreeNode node;
+  final int level;
+
+  const _FileTreeNodeWidget({required this.node, required this.level});
+
+  @override
+  State<_FileTreeNodeWidget> createState() => _FileTreeNodeWidgetState();
+}
+
+class _FileTreeNodeWidgetState extends State<_FileTreeNodeWidget> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+      children: [
+        InkWell(
+          onTap: widget.node.isDirectory
+              ? () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                }
+              : null,
+          child: Padding(
+            padding: EdgeInsets.only(left: 16.0 * widget.level),
+            child: Row(
+              children: [
+                if (widget.node.isDirectory)
+                  Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_down
+                        : Icons.keyboard_arrow_right,
+                    size: 20,
+                  )
+                else
+                  const SizedBox(width: 20),
+                const SizedBox(width: 8),
+                Icon(
+                  widget.node.isDirectory
+                      ? Icons.folder
+                      : Icons.insert_drive_file,
+                  color: widget.node.isDirectory
+                      ? Colors.amber
+                      : Colors.blueGrey,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      widget.node.name,
+                      style: TextStyle(
+                        fontWeight: widget.node.isDirectory
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isExpanded && widget.node.isDirectory)
+          ...widget.node.children.map((childNode) {
+            return _FileTreeNodeWidget(
+              node: childNode,
+              level: widget.level + 1,
+            );
+          }),
+      ],
     );
   }
 }

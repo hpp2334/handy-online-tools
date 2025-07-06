@@ -35,11 +35,15 @@
 </head>
 
 <body>
-  <script src="pkg/rust_libs.js" type="module"></script>
+  <script src="pkg/hol_core.js" type="module"></script>
   <script type="module">
-    import init from "./pkg/rust_libs.js"
+    import init, { WasmApp } from "./pkg/hol_core.js"
     const wasm = init()
-    window._rustLibs = wasm
+    async function _createWasmApp() {
+      await wasm;
+      return new WasmApp()
+    }
+    window._createWasmApp = _createWasmApp
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

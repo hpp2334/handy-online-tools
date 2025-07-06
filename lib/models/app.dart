@@ -1,7 +1,6 @@
 import 'dart:collection';
 import 'dart:math';
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 
 class TAppViewProps {}
@@ -9,7 +8,7 @@ class TAppViewProps {}
 typedef TAppRender = Widget Function(TAppViewProps);
 
 class TApp {
-  final Int64 id;
+  final int id;
   final String name;
   final Point<double> defaultSize;
   final List<String> extensions;
@@ -27,7 +26,7 @@ class TApp {
 }
 
 class TAppRegistryModel extends ChangeNotifier {
-  final HashMap<Int64, TApp> _map = HashMap();
+  final HashMap<int, TApp> _map = HashMap();
 
   void add(TApp app) {
     _map[app.id] = app;

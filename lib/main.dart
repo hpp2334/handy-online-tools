@@ -6,8 +6,7 @@ import 'package:handy_online_tools/models/app_window.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
-  final r = await getRustLibs();
-  r.greet();
+  final nativeApp = await createNativeApp();
 
   runApp(
     MultiProvider(
@@ -20,6 +19,7 @@ void main() async {
           },
         ),
         ChangeNotifierProvider(create: (cx) => TAppWindowsModel()),
+        ChangeNotifierProvider(create: (cx) => nativeApp),
       ],
       child: const HolApp(),
     ),

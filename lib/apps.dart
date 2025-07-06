@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:handy_online_tools/core/app_window.dart';
 import 'package:handy_online_tools/models/app.dart';
@@ -11,7 +10,7 @@ import 'package:provider/provider.dart';
 void initTApps(TAppRegistryModel m) {
   m.add(
     TApp(
-      id: Int64(1),
+      id: 1,
       name: "Zip Viewer",
       defaultSize: Point(300, 600),
       extensions: [".zip", ".7z"],
