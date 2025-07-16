@@ -122,20 +122,74 @@ class _ErrorWidget extends StatelessWidget {
   }
 }
 
-class _CoreWidget extends StatelessWidget {
+class _CoreWidget extends StatefulWidget {
   final _Image image;
 
   const _CoreWidget({required this.image});
 
   @override
+  State<_CoreWidget> createState() => _CoreWidgetState();
+}
+
+class _CoreWidgetState extends State<_CoreWidget> {
+  late TransformationController _controller;
+  double _currentScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TransformationController();
+    _controller.addListener(_onTransformChanged);
+  }
+
+  void _onTransformChanged() {
+    final matrix = _controller.value;
+    final scale = matrix.getMaxScaleOnAxis();
+
+    setState(() {
+      _currentScale = scale;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTransformChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: InteractiveViewer(
-        panEnabled: true,
-        minScale: 0.5,
-        maxScale: 5.0,
-        child: Image.memory(image.data, fit: BoxFit.contain),
-      ),
+    return Stack(
+      children: [
+        Center(
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.5,
+            maxScale: 5.0,
+            transformationController: _controller,
+            child: Image.memory(widget.image.data, fit: BoxFit.contain),
+          ),
+        ),
+        Positioned(
+          bottom: 20,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${(_currentScale * 100).toStringAsFixed(2)}%',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
