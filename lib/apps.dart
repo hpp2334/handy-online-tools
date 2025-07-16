@@ -5,6 +5,7 @@ import 'package:handy_online_tools/core/app_window.dart';
 import 'package:handy_online_tools/models/app.dart';
 import 'package:handy_online_tools/models/app_window.dart';
 import 'package:handy_online_tools/pkgs/image_viewer/app.dart';
+import 'package:handy_online_tools/pkgs/json_viewer/app.dart';
 import 'package:handy_online_tools/pkgs/zip_viewer/app.dart';
 import 'package:provider/provider.dart';
 
@@ -27,6 +28,16 @@ void initTApps(TAppRegistryModel m) {
       extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp"],
       iconData: Icons.image,
       render: (props) => ImageViewerWidget(),
+    ),
+  );
+  m.add(
+    TApp(
+      id: 3,
+      name: "Json Viewer",
+      defaultSize: Point(800, 600),
+      extensions: [".json"],
+      iconData: Icons.data_object,
+      render: (props) => JsonViewerWidget(),
     ),
   );
 }
