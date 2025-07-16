@@ -4,6 +4,7 @@ import 'package:handy_online_tools/core/rust_libs.dart';
 import 'package:handy_online_tools/generated/proto/archiver.pb.dart';
 import 'package:handy_online_tools/generated/proto/core.pb.dart';
 import 'package:handy_online_tools/models/app_window.dart';
+import 'package:handy_online_tools/pkgs/widgets/file_picker.dart';
 import 'package:provider/provider.dart';
 
 String _pkgId = "hol.archiver";
@@ -46,7 +47,7 @@ class _Model extends ChangeNotifier {
   _Archive get archive => _archive!;
   String get errorMessage => _errorMessage!;
 
-  Future<void> handleDrop(NativeApp app, DropItem item) async {
+  Future<bool> handleDrop(NativeApp app, PickerBlob item) async {
     final data = await item.readAsBytes();
 
     try {
@@ -62,6 +63,7 @@ class _Model extends ChangeNotifier {
       _status = _Status.error;
     }
     notifyListeners();
+    return _status == _Status.success;
   }
 
   void reset() {
@@ -106,53 +108,14 @@ class _PendingWidget extends StatefulWidget {
 }
 
 class _PendingWidgetState extends State<_PendingWidget> {
-  bool _dragging = false;
-
   @override
   Widget build(BuildContext context) {
-    return DropTarget(
-      onDragDone: (details) async {
-        if (details.files.isEmpty) {
-          return;
-        }
-        final model = Provider.of<_Model>(context, listen: false);
+    return FilePicker(
+      handleFile: (PickerBlob file) async {
         final app = Provider.of<NativeApp>(context, listen: false);
-        final file = details.files.first;
-        await model.handleDrop(app, file);
-
-        if (!context.mounted) {
-          return;
-        }
-        if (model.status == _Status.success) {
-          Provider.of<TAppWindowModel>(
-            context,
-            listen: false,
-          ).setTitle(file.name);
-        }
+        final model = Provider.of<_Model>(context, listen: false);
+        return await model.handleDrop(app, file);
       },
-      onDragEntered: (details) {
-        setState(() {
-          _dragging = true;
-        });
-      },
-      onDragExited: (detail) {
-        setState(() {
-          _dragging = false;
-        });
-      },
-      child: Container(
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_upload, size: 50),
-            if (!_dragging)
-              const Text("Drag and drop archiver here")
-            else
-              const Text("Release to accept"),
-          ],
-        ),
-      ),
     );
   }
 }

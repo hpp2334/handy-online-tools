@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:handy_online_tools/pkgs/widgets/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:handy_online_tools/core/rust_libs.dart';
 import 'package:handy_online_tools/generated/proto/archiver.pb.dart';
@@ -27,7 +28,7 @@ class _Model extends ChangeNotifier {
   _Image get image => _image!;
   String get errorMessage => _errorMessage!;
 
-  Future<void> handleDrop(NativeApp app, DropItem item) async {
+  Future<bool> handleDrop(NativeApp app, PickerBlob item) async {
     try {
       final data = await item.readAsBytes();
       _image = _Image(name: item.name, data: data);
@@ -37,6 +38,7 @@ class _Model extends ChangeNotifier {
       _status = _Status.error;
     }
     notifyListeners();
+    return _status == _Status.success;
   }
 
   void reset() {
@@ -81,44 +83,14 @@ class _PendingWidget extends StatefulWidget {
 }
 
 class _PendingWidgetState extends State<_PendingWidget> {
-  bool _dragging = false;
-
   @override
   Widget build(BuildContext context) {
-    return DropTarget(
-      onDragDone: (details) async {
-        if (details.files.isEmpty) {
-          return;
-        }
-        final model = Provider.of<_Model>(context, listen: false);
+    return FilePicker(
+      handleFile: (PickerBlob file) async {
         final app = Provider.of<NativeApp>(context, listen: false);
-        final file = details.files.first;
-        await model.handleDrop(app, file);
-
-        if (!context.mounted) return;
-
-        if (model.status == _Status.success) {
-          Provider.of<TAppWindowModel>(
-            context,
-            listen: false,
-          ).setTitle(file.name);
-        }
+        final model = Provider.of<_Model>(context, listen: false);
+        return await model.handleDrop(app, file);
       },
-      onDragEntered: (_) => setState(() => _dragging = true),
-      onDragExited: (_) => setState(() => _dragging = false),
-      child: Container(
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_upload, size: 50),
-            const SizedBox(height: 16),
-            _dragging
-                ? const Text("Release to open image")
-                : const Text("Drag and drop an image here"),
-          ],
-        ),
-      ),
     );
   }
 }
