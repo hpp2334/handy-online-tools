@@ -4,3 +4,8 @@ members = ["hol_core", "hol_macro"]
 
 [workspace.dependencies]
 hol_macro = { path = "./hol_macro" }
+
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

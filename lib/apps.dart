@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:handy_online_tools/core/app_window.dart';
 import 'package:handy_online_tools/models/app.dart';
 import 'package:handy_online_tools/models/app_window.dart';
+import 'package:handy_online_tools/pkgs/image_viewer/app.dart';
 import 'package:handy_online_tools/pkgs/zip_viewer/app.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +17,16 @@ void initTApps(TAppRegistryModel m) {
       extensions: [".zip", ".7z"],
       iconData: Icons.folder_zip,
       render: (props) => ZipViewerWidget(),
+    ),
+  );
+  m.add(
+    TApp(
+      id: 2,
+      name: "Image Viewer",
+      defaultSize: Point(800, 600),
+      extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+      iconData: Icons.image,
+      render: (props) => ImageViewerWidget(),
     ),
   );
 }

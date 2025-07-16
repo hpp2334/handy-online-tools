@@ -28,8 +28,6 @@ message TBlobResource {
     uint64 id = 1;
 }
 
-// requests and responses
-
 message TInvokeCommandRequest {
     TPackageId pkg_id = 1;
     TCommandId command_id = 2;
@@ -40,5 +38,16 @@ message TInvokeCommandResponse {
     bool success = 1;
     bytes returns = 2;
     optional string error_message = 3;
+}
+
+// internal commands
+
+
+message ICLoadBlobArg {
+    TBlobResource data = 1;
+}
+
+message ICLoadBlobRet {
+    bytes data = 1;
 }
 
