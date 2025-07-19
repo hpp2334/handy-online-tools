@@ -5,6 +5,7 @@ import 'package:handy_online_tools/generated/proto/archiver.pb.dart';
 import 'package:handy_online_tools/generated/proto/core.pb.dart';
 import 'package:handy_online_tools/models/app_window.dart';
 import 'package:handy_online_tools/pkgs/widgets/file_picker.dart';
+import 'package:handy_online_tools/widgets/FileEntryWidget.dart';
 import 'package:provider/provider.dart';
 
 String _pkgId = "hol.archiver";
@@ -17,9 +18,10 @@ class _ArchiveFile {
 }
 
 class _Archive {
+  final TResource handle;
   final List<_ArchiveFile> entries = List.empty(growable: true);
 
-  _Archive(ICQueryDirRet r) {
+  _Archive(this.handle, ICQueryDirRet r) {
     for (final item in r.items) {
       entries.add(
         _ArchiveFile(path: item.path, name: item.path.split('/').last),
@@ -28,7 +30,7 @@ class _Archive {
   }
 }
 
-enum _Status { pending, success, error }
+enum _Status { pending, loading, success, error }
 
 Future<ICOpenZipRet> _openZip(NativeApp app, ICOpenZipArg arg) async {
   return invokeCommand(app, _pkgId, "open_zip", arg, ICOpenZipRet.fromBuffer);
@@ -36,6 +38,10 @@ Future<ICOpenZipRet> _openZip(NativeApp app, ICOpenZipArg arg) async {
 
 Future<ICQueryDirRet> _queryDir(NativeApp app, ICQueryDirArg arg) async {
   return invokeCommand(app, _pkgId, "query_dir", arg, ICQueryDirRet.fromBuffer);
+}
+
+Future<ICLoadFileRet> _loadFile(NativeApp app, ICLoadFileArg arg) async {
+  return invokeCommand(app, _pkgId, "load_file", arg, ICLoadFileRet.fromBuffer);
 }
 
 class _Model extends ChangeNotifier {
@@ -48,6 +54,9 @@ class _Model extends ChangeNotifier {
   String get errorMessage => _errorMessage!;
 
   Future<bool> handleDrop(NativeApp app, PickerBlob item) async {
+    _status = _Status.loading;
+    notifyListeners();
+
     final data = await item.readAsBytes();
 
     try {
@@ -56,7 +65,7 @@ class _Model extends ChangeNotifier {
         app,
         ICQueryDirArg(archiver: handle.data),
       );
-      _archive = _Archive(queried);
+      _archive = _Archive(handle.data, queried);
       _status = _Status.success;
     } catch (e) {
       _errorMessage = e.toString();
@@ -91,6 +100,8 @@ class _ZipViewerWidgetState extends State<ZipViewerWidget> {
           switch (status) {
             case _Status.pending:
               return _PendingWidget();
+            case _Status.loading:
+              return _LoadingWidget();
             case _Status.success:
               return _CoreWidget();
             case _Status.error:
@@ -102,12 +113,14 @@ class _ZipViewerWidgetState extends State<ZipViewerWidget> {
   }
 }
 
-class _PendingWidget extends StatefulWidget {
+class _LoadingWidget extends StatelessWidget {
   @override
-  State<_PendingWidget> createState() => _PendingWidgetState();
+  Widget build(BuildContext context) {
+    return const Center(child: CircularProgressIndicator());
+  }
 }
 
-class _PendingWidgetState extends State<_PendingWidget> {
+class _PendingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilePicker(
@@ -254,9 +267,23 @@ class _FileTreeViewState extends State<_FileTreeView> {
     return ListView.builder(
       itemCount: rootNode.children.length,
       itemBuilder: (context, index) {
-        return _FileTreeNodeWidget(node: rootNode.children[index], level: 0);
+        return _TreeNodeWidget(node: rootNode.children[index], level: 0);
       },
     );
+  }
+}
+
+class _TreeNodeWidget extends StatelessWidget {
+  final _FileTreeNode node;
+  final int level;
+
+  const _TreeNodeWidget({super.key, required this.node, required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    return node.isDirectory
+        ? _DirectoryTreeNodeWidget(node: node, level: level)
+        : _FileTreeNodeWidget(node: node, level: level);
   }
 }
 
@@ -274,6 +301,69 @@ class _FileTreeNode {
   });
 }
 
+class _DirectoryTreeNodeWidget extends StatefulWidget {
+  final _FileTreeNode node;
+  final int level;
+
+  const _DirectoryTreeNodeWidget({required this.node, required this.level});
+
+  @override
+  State<_DirectoryTreeNodeWidget> createState() =>
+      _DirectoryTreeNodeWidgetState();
+}
+
+class _DirectoryTreeNodeWidgetState extends State<_DirectoryTreeNodeWidget> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    assert(widget.node.isDirectory);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: Padding(
+            padding: EdgeInsets.only(left: 16.0 * widget.level),
+            child: Row(
+              children: [
+                Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_down
+                      : Icons.keyboard_arrow_right,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.folder, color: Colors.amber),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      widget.node.name,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isExpanded)
+          ...widget.node.children.map((childNode) {
+            return _TreeNodeWidget(node: childNode, level: widget.level + 1);
+          }),
+      ],
+    );
+  }
+}
+
 class _FileTreeNodeWidget extends StatefulWidget {
   final _FileTreeNode node;
   final int level;
@@ -285,43 +375,32 @@ class _FileTreeNodeWidget extends StatefulWidget {
 }
 
 class _FileTreeNodeWidgetState extends State<_FileTreeNodeWidget> {
-  bool _isExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: widget.node.isDirectory
-              ? () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                }
-              : null,
+        FileEntryWidget(
+          getResource: () async {
+            final app = Provider.of<NativeApp>(context, listen: false);
+            final model = Provider.of<_Model>(context, listen: false);
+            final fileName = widget.node.name;
+            final archiver = model.archive;
+
+            final ret = await _loadFile(
+              app,
+              ICLoadFileArg(archiver: archiver.handle, path: widget.node.path),
+            );
+
+            return (ret.data, fileName);
+          },
           child: Padding(
             padding: EdgeInsets.only(left: 16.0 * widget.level),
             child: Row(
               children: [
-                if (widget.node.isDirectory)
-                  Icon(
-                    _isExpanded
-                        ? Icons.keyboard_arrow_down
-                        : Icons.keyboard_arrow_right,
-                    size: 20,
-                  )
-                else
-                  const SizedBox(width: 20),
+                const SizedBox(width: 20),
                 const SizedBox(width: 8),
-                Icon(
-                  widget.node.isDirectory
-                      ? Icons.folder
-                      : Icons.insert_drive_file,
-                  color: widget.node.isDirectory
-                      ? Colors.amber
-                      : Colors.blueGrey,
-                ),
+                Icon(Icons.insert_drive_file, color: Colors.blueGrey),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Padding(
@@ -341,13 +420,6 @@ class _FileTreeNodeWidgetState extends State<_FileTreeNodeWidget> {
             ),
           ),
         ),
-        if (_isExpanded && widget.node.isDirectory)
-          ...widget.node.children.map((childNode) {
-            return _FileTreeNodeWidget(
-              node: childNode,
-              level: widget.level + 1,
-            );
-          }),
       ],
     );
   }

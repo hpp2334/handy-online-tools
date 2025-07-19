@@ -2,8 +2,20 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+import 'package:handy_online_tools/generated/proto/core.pb.dart';
 
-class TAppViewProps {}
+class TAppExternal {
+  final TBlobResource resource;
+  final String fileName;
+
+  TAppExternal({required this.resource, required this.fileName});
+}
+
+class TAppViewProps {
+  TAppExternal? external;
+
+  TAppViewProps({required this.external});
+}
 
 typedef TAppRender = Widget Function(TAppViewProps);
 
@@ -34,5 +46,17 @@ class TAppRegistryModel extends ChangeNotifier {
 
   List<TApp> list() {
     return _map.values.toList();
+  }
+
+  TApp? recommendApp(String filename) {
+    final lower = filename.toLowerCase();
+    for (final app in _map.values) {
+      for (final ext in app.extensions) {
+        if (lower.endsWith(ext)) {
+          return app;
+        }
+      }
+    }
+    return null;
   }
 }

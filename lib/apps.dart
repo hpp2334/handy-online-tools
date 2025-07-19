@@ -28,7 +28,7 @@ void initTApps(TAppRegistryModel m) {
       defaultSize: Point(800, 600),
       extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp"],
       iconData: Icons.image,
-      render: (props) => ImageViewerWidget(),
+      render: (props) => ImageViewerWidget(props: props),
     ),
   );
   m.add(
@@ -95,7 +95,7 @@ class _TAppsPageState extends State<TAppsPage> {
                               Provider.of<TAppWindowsModel>(
                                 context,
                                 listen: false,
-                              ).create(app);
+                              ).create(app, null);
                             },
                             hoverColor: Colors.grey.withValues(
                               alpha: 0.1,
@@ -140,7 +140,9 @@ class _TAppsPageState extends State<TAppsPage> {
                       return ChangeNotifierProvider(
                         create: (cx) => TAppWindowModel(appWin: appWin),
                         child: TAppWindowWidget(
-                          child: appWin.app.render(TAppViewProps()),
+                          child: appWin.app.render(
+                            TAppViewProps(external: appWin.external),
+                          ),
                         ),
                       );
                     }),

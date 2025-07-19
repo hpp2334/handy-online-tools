@@ -2,16 +2,18 @@ import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
+import 'package:handy_online_tools/generated/proto/core.pb.dart';
 import 'package:handy_online_tools/models/app.dart';
 
 class TAppWindow {
   final Int64 id;
   final TApp app;
+  final TAppExternal? external;
 
   String name = "";
   Rectangle<double> bounds = Rectangle(1, 1, 1, 1);
 
-  TAppWindow({required this.id, required this.app});
+  TAppWindow({required this.id, required this.app, required this.external});
 }
 
 class TAppWindowsModel extends ChangeNotifier {
@@ -23,11 +25,11 @@ class TAppWindowsModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void create(TApp app) {
+  void create(TApp app, TAppExternal? external) {
     final id = _allocated + 1;
     _allocated += 1;
 
-    final win = TAppWindow(id: id, app: app);
+    final win = TAppWindow(id: id, app: app, external: external);
     win.name = app.name;
     win.bounds = Rectangle(10, 10, app.defaultSize.x, app.defaultSize.y);
     appWins.add(win);

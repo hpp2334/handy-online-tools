@@ -9,7 +9,7 @@ Future<Uint8List> loadBlob(NativeApp app, ICLoadBlobArg arg) async {
   final res = await invokeCommand(
     app,
     _pkgId,
-    "open_zip",
+    "load_blob_data",
     arg,
     ICLoadBlobRet.fromBuffer,
   );

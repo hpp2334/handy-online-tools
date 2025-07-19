@@ -2,6 +2,9 @@ import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:handy_online_tools/generated/proto/core.pb.dart';
+import 'package:handy_online_tools/models/app.dart';
+import 'package:handy_online_tools/pkgs/blob/command.dart';
 import 'package:handy_online_tools/pkgs/widgets/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:handy_online_tools/core/rust_libs.dart';
@@ -41,6 +44,19 @@ class _Model extends ChangeNotifier {
     return _status == _Status.success;
   }
 
+  Future<bool> handleExternal(NativeApp app, TAppExternal external) async {
+    try {
+      final data = await loadBlob(app, ICLoadBlobArg(data: external.resource));
+      _image = _Image(name: external.fileName, data: data);
+      _status = _Status.success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = _Status.error;
+    }
+    notifyListeners();
+    return _status == _Status.success;
+  }
+
   void reset() {
     _status = _Status.pending;
     notifyListeners();
@@ -48,7 +64,9 @@ class _Model extends ChangeNotifier {
 }
 
 class ImageViewerWidget extends StatefulWidget {
-  const ImageViewerWidget({super.key});
+  final TAppViewProps props;
+
+  const ImageViewerWidget({super.key, required this.props});
 
   @override
   State<ImageViewerWidget> createState() => _ImageViewerWidgetState();
@@ -56,9 +74,21 @@ class ImageViewerWidget extends StatefulWidget {
 
 class _ImageViewerWidgetState extends State<ImageViewerWidget> {
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => _Model(),
+      create: (context) {
+        final model = _Model();
+        if (widget.props.external != null) {
+          final app = Provider.of<NativeApp>(context, listen: false);
+          model.handleExternal(app, widget.props.external!);
+        }
+        return model;
+      },
       child: Consumer<_Model>(
         builder: (context, model, _) {
           switch (model.status) {

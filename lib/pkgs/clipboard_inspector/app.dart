@@ -270,6 +270,16 @@ class _ClipboardItemCard extends StatelessWidget {
     }
   }
 
+  String _displayFormat(DataFormat format) {
+    if (format is SimpleValueFormat) {
+      return "${format.codec.decodingFormats.first} (Value)";
+    } else if (format is SimpleFileFormat) {
+      return "${format.providerFormat} (File)";
+    } else {
+      return format.toString();
+    }
+  }
+
   String _truncateText(String text, int maxLength) {
     return text.length <= maxLength
         ? text
@@ -312,7 +322,7 @@ class _ClipboardItemCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    item.format.toString(),
+                    _displayFormat(item.format),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
