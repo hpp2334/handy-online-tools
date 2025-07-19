@@ -387,10 +387,11 @@ packages:
   re_editor:
     dependency: "direct main"
     description:
-      name: re_editor
-      sha256: "17e430f0591dd361992ec2dd6f69191c1853fa46e05432e095310a8f82ee820e"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "044e4443f52bdb95e81bcfa1898a8bdb761e7523"
+      url: "git@github.com:hpp2334/re-editor.git"
+    source: git
     version: "0.7.0"
   re_highlight:
     dependency: "direct main"
