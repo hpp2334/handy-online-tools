@@ -282,8 +282,12 @@ class _TreeNodeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return node.isDirectory
-        ? _DirectoryTreeNodeWidget(node: node, level: level)
-        : _FileTreeNodeWidget(node: node, level: level);
+        ? _DirectoryTreeNodeWidget(
+            key: Key(node.path),
+            node: node,
+            level: level,
+          )
+        : _FileTreeNodeWidget(key: Key(node.path), node: node, level: level);
   }
 }
 
@@ -305,7 +309,11 @@ class _DirectoryTreeNodeWidget extends StatefulWidget {
   final _FileTreeNode node;
   final int level;
 
-  const _DirectoryTreeNodeWidget({required this.node, required this.level});
+  const _DirectoryTreeNodeWidget({
+    super.key,
+    required this.node,
+    required this.level,
+  });
 
   @override
   State<_DirectoryTreeNodeWidget> createState() =>
@@ -357,7 +365,11 @@ class _DirectoryTreeNodeWidgetState extends State<_DirectoryTreeNodeWidget> {
         ),
         if (_isExpanded)
           ...widget.node.children.map((childNode) {
-            return _TreeNodeWidget(node: childNode, level: widget.level + 1);
+            return _TreeNodeWidget(
+              key: Key(childNode.path),
+              node: childNode,
+              level: widget.level + 1,
+            );
           }),
       ],
     );
@@ -368,7 +380,11 @@ class _FileTreeNodeWidget extends StatefulWidget {
   final _FileTreeNode node;
   final int level;
 
-  const _FileTreeNodeWidget({required this.node, required this.level});
+  const _FileTreeNodeWidget({
+    super.key,
+    required this.node,
+    required this.level,
+  });
 
   @override
   State<_FileTreeNodeWidget> createState() => _FileTreeNodeWidgetState();
