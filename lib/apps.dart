@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:handy_online_tools/core/app_window.dart';
 import 'package:handy_online_tools/models/app.dart';
 import 'package:handy_online_tools/models/app_window.dart';
+import 'package:handy_online_tools/pkgs/clipboard_inspector/app.dart';
 import 'package:handy_online_tools/pkgs/image_viewer/app.dart';
 import 'package:handy_online_tools/pkgs/json_viewer/app.dart';
 import 'package:handy_online_tools/pkgs/zip_viewer/app.dart';
@@ -38,6 +39,16 @@ void initTApps(TAppRegistryModel m) {
       extensions: [".json"],
       iconData: Icons.data_object,
       render: (props) => JsonViewerWidget(),
+    ),
+  );
+  m.add(
+    TApp(
+      id: 4,
+      name: "Clipboard Inspector",
+      defaultSize: Point(800, 600),
+      extensions: [],
+      iconData: Icons.paste,
+      render: (props) => ClipboardInspectorWidget(),
     ),
   );
 }
