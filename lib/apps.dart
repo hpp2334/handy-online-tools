@@ -153,6 +153,7 @@ class _TAppsPageState extends State<TAppsPage> {
                   children: [
                     ...model.appWins.map((appWin) {
                       return ChangeNotifierProvider(
+                        key: Key(appWin.id.toString()),
                         create: (cx) => TAppWindowModel(appWin: appWin),
                         child: TAppWindowWidget(
                           child: appWin.app.render(

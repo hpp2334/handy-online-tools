@@ -35,6 +35,20 @@ class TAppWindowsModel extends ChangeNotifier {
     appWins.add(win);
     notifyListeners();
   }
+
+  void activate(Int64 id) {
+    if (appWins.isNotEmpty && appWins.last.id == id) {
+      return;
+    }
+
+    final winIndex = appWins.indexWhere((appWin) => appWin.id == id);
+    if (winIndex != -1) {
+      final win = appWins[winIndex];
+      appWins.removeAt(winIndex);
+      appWins.add(win);
+      notifyListeners();
+    }
+  }
 }
 
 class TAppWindowModel extends ChangeNotifier {

@@ -115,6 +115,8 @@ class _TAppWindowWidgetState extends State<TAppWindowWidget> {
                 draggingBar = onBar;
                 startMousePos = details.globalPosition;
                 startWinBounds = appWin.bounds;
+
+                Provider.of<TAppWindowsModel>(context, listen: false).activate(appWin.id);
               },
               onPanUpdate: (details) {
                 final resizing =
