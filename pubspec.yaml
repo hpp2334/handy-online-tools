@@ -39,10 +39,11 @@ dependencies:
   desktop_drop: ^0.6.0
   protobuf: ^4.1.0
   super_clipboard: ^0.9.1
-  file_saver: ^0.3.1
   re_editor:
     git:
       url: git@github.com:hpp2334/re-editor.git
+      ref: patched-0720
+  file_saver: ^0.3.1
   re_highlight: ^0.0.3
 
 

@@ -388,8 +388,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "044e4443f52bdb95e81bcfa1898a8bdb761e7523"
+      ref: patched-0720
+      resolved-ref: "02d3264f9b51f1ca35a8827a3fa75ecb976715cd"
       url: "git@github.com:hpp2334/re-editor.git"
     source: git
     version: "0.7.0"
