@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:handy_online_tools/generated/proto/core.pb.dart';
 import 'package:handy_online_tools/models/app.dart';
 import 'package:handy_online_tools/pkgs/blob/command.dart';
@@ -17,7 +16,7 @@ import 'package:re_highlight/styles/atom-one-light.dart';
 enum _Status { pending, success, error }
 
 String _format(String text) {
-  if (maybeJson(text)) {
+  if (isValidJson(text)) {
     return formatJson(text);
   }
   return text;
@@ -111,7 +110,7 @@ class _PendingWidget extends StatefulWidget {
 class _PendingWidgetState extends State<_PendingWidget> {
   @override
   Widget build(BuildContext context) {
-    return FilePicker(
+    return FilePickerWidget(
       handleFile: (PickerBlob file) async {
         final app = Provider.of<NativeApp>(context, listen: false);
         final model = Provider.of<_Model>(context, listen: false);
