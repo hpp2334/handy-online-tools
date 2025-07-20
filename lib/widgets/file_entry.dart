@@ -13,6 +13,58 @@ class _Deps {
   _Deps({required this.getResource});
 }
 
+
+Future<void> _openAs(BuildContext context, TBlobResource resource, String fileName) async {
+  final apps = Provider.of<TAppRegistryModel>(context, listen: false);
+  final appWins = Provider.of<TAppWindowsModel>(context, listen: false);
+  final allApps = apps.list();
+  if (!context.mounted) {
+    return;
+  }
+  await showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Choose an app to open with'),
+        content: SizedBox(
+          width: 300,
+          height: 400,
+          child: ListView.builder(
+            itemCount: allApps.length,
+            itemBuilder: (context, index) {
+              final app = allApps[index];
+              return ListTile(
+                leading: Icon(app.iconData),
+                title: Text(app.name),
+                onTap: () {
+                  Navigator.of(dialogContext).pop();
+                  appWins.create(
+                    app,
+                    TAppExternal(resource: resource, fileName: fileName),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _openAsHandler(BuildContext context, _Deps deps) async {
+  final (resource, fileName) = await deps.getResource();
+  await _openAs(context, resource, fileName);
+}
+
 void _openHandler(BuildContext context, _Deps deps) async {
   final apps = Provider.of<TAppRegistryModel>(context, listen: false);
   final appWins = Provider.of<TAppWindowsModel>(context, listen: false);
@@ -26,13 +78,7 @@ void _openHandler(BuildContext context, _Deps deps) async {
       TAppExternal(resource: resource, fileName: fileName),
     );
   } else {
-    // Show a message to the user that no preferred application was found
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No associated application found to open this file'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _openAs(context, resource, fileName);
   }
 }
 
@@ -61,14 +107,21 @@ void _showFileMenu(BuildContext context, TapUpDetails details, _Deps deps) {
     position: position,
     items: <PopupMenuEntry>[
       PopupMenuItem(
-        value: 'open',
+        value: 'Open',
         onTap: () {
           _openHandler(context, deps);
         },
         child: const Text('Open'),
       ),
       PopupMenuItem(
-        value: 'download',
+        value: 'Open As',
+        onTap: () {
+          _openAsHandler(context, deps);
+        },
+        child: const Text('Open As'),
+      ),
+      PopupMenuItem(
+        value: 'Download',
         onTap: () {
           _downloadHandler(context, deps);
         },

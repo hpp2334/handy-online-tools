@@ -210,7 +210,7 @@ class _ClipboardInspectorWidgetState extends State<ClipboardInspectorWidget> {
 class _ClipboardItemsGrid extends StatelessWidget {
   final List<_ClipboardItemData> items;
 
-  const _ClipboardItemsGrid({super.key, required this.items});
+  const _ClipboardItemsGrid({required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +241,7 @@ class _ClipboardItemsGrid extends StatelessWidget {
 class _ClipboardItemCard extends StatelessWidget {
   final _ClipboardItemData item;
 
-  const _ClipboardItemCard({super.key, required this.item});
+  const _ClipboardItemCard({required this.item});
 
   String _formatSize(int size) {
     if (size < 1024) {
