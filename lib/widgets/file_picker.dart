@@ -59,17 +59,7 @@ class _FilePickerWidgetState extends State<FilePickerWidget> {
   bool _dragging = false;
 
   Future<void> handlePickerBlob(BuildContext context, PickerBlob blob) async {
-    final success = await widget.handleFile(blob);
-
-    if (!context.mounted) {
-      return;
-    }
-    if (success) {
-      Provider.of<TAppWindowModel>(
-        context,
-        listen: false,
-      ).setTitle(blob.name);
-    }
+    await widget.handleFile(blob);
   }
 
   @override

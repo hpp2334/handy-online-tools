@@ -25,7 +25,7 @@ enum _ValidJsonState {
 }
 
 /// Validates if a string is a valid JSON using a state machine approach
-bool isValidJson(String jsonString) {
+bool _isValidJson(String jsonString) {
   if (jsonString.isEmpty) {
     return false;
   }
@@ -312,7 +312,7 @@ bool _isNumberChar(String char) {
 
 
 /// Format a JSON string with proper indentation and line breaks
-String formatJson(String text) {
+String _formatJson(String text) {
   final buffer = StringBuffer();
   int indentLevel = 0;
   var state = _JsonTokenizerState.normal;
@@ -383,4 +383,16 @@ String formatJson(String text) {
   }
 
   return buffer.toString();
+}
+
+String? tryFormatJson(String text) {
+  if (!_isValidJson(text)) {
+    return null;
+  }
+  try {
+    return _formatJson(text);
+  } catch (e) {
+    //
+  }
+  return null;
 }

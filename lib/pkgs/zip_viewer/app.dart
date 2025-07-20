@@ -1,11 +1,12 @@
-import 'package:desktop_drop/desktop_drop.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:handy_online_tools/core/rust_libs.dart';
 import 'package:handy_online_tools/generated/proto/archiver.pb.dart';
 import 'package:handy_online_tools/generated/proto/core.pb.dart';
-import 'package:handy_online_tools/models/app_window.dart';
-import 'package:handy_online_tools/pkgs/widgets/file_picker.dart';
-import 'package:handy_online_tools/widgets/FileEntryWidget.dart';
+import 'package:handy_online_tools/models/app.dart';
+import 'package:handy_online_tools/widgets/file_entry.dart';
+import 'package:handy_online_tools/widgets/pending_file.dart';
 import 'package:provider/provider.dart';
 
 String _pkgId = "hol.archiver";
@@ -30,8 +31,6 @@ class _Archive {
   }
 }
 
-enum _Status { pending, loading, success, error }
-
 Future<ICOpenZipRet> _openZip(NativeApp app, ICOpenZipArg arg) async {
   return invokeCommand(app, _pkgId, "open_zip", arg, ICOpenZipRet.fromBuffer);
 }
@@ -44,134 +43,39 @@ Future<ICLoadFileRet> _loadFile(NativeApp app, ICLoadFileArg arg) async {
   return invokeCommand(app, _pkgId, "load_file", arg, ICLoadFileRet.fromBuffer);
 }
 
-class _Model extends ChangeNotifier {
-  _Status _status = _Status.pending;
-  String? _errorMessage;
-  _Archive? _archive;
+class ZipViewerWidget extends StatelessWidget {
+  final TAppViewProps props;
 
-  _Status get status => _status;
-  _Archive get archive => _archive!;
-  String get errorMessage => _errorMessage!;
+  const ZipViewerWidget({super.key, required this.props});
 
-  Future<bool> handleDrop(NativeApp app, PickerBlob item) async {
-    _status = _Status.loading;
-    notifyListeners();
-
-    final data = await item.readAsBytes();
-
-    try {
-      final handle = await _openZip(app, ICOpenZipArg(data: data));
-      final queried = await _queryDir(
-        app,
-        ICQueryDirArg(archiver: handle.data),
-      );
-      _archive = _Archive(handle.data, queried);
-      _status = _Status.success;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _status = _Status.error;
-    }
-    notifyListeners();
-    return _status == _Status.success;
-  }
-
-  void reset() {
-    _status = _Status.pending;
-    notifyListeners();
-  }
-}
-
-class ZipViewerWidget extends StatefulWidget {
-  const ZipViewerWidget({super.key});
-
-  @override
-  State<ZipViewerWidget> createState() => _ZipViewerWidgetState();
-}
-
-class _ZipViewerWidgetState extends State<ZipViewerWidget> {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => _Model(),
-      child: Consumer<_Model>(
-        builder: (context, model, _) {
-          final status = model.status;
-
-          switch (status) {
-            case _Status.pending:
-              return _PendingWidget();
-            case _Status.loading:
-              return _LoadingWidget();
-            case _Status.success:
-              return _CoreWidget();
-            case _Status.error:
-              return _ErrorWidget(errorMessage: model.errorMessage);
-          }
-        },
-      ),
-    );
-  }
-}
-
-class _LoadingWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
-  }
-}
-
-class _PendingWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return FilePickerWidget(
-      handleFile: (PickerBlob file) async {
-        final app = Provider.of<NativeApp>(context, listen: false);
-        final model = Provider.of<_Model>(context, listen: false);
-        return await model.handleDrop(app, file);
+    return PFWidget<_Archive>(
+      props: props,
+      computeState: (NativeApp app, Uint8List data, String _) async {
+        final handle = await _openZip(app, ICOpenZipArg(data: data));
+        final queried = await _queryDir(
+          app,
+          ICQueryDirArg(archiver: handle.data),
+        );
+        return _Archive(handle.data, queried);
+      },
+      builder: (_Archive archiver) {
+        return _CoreWidget(archiver: archiver);
       },
     );
   }
 }
 
-class _ErrorWidget extends StatelessWidget {
-  final String errorMessage;
-
-  const _ErrorWidget({required this.errorMessage});
-
-  @override
-  Widget build(BuildContext context) {
-    final model = Provider.of<_Model>(context, listen: false);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 50, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(
-            errorMessage,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, color: Colors.red),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              model.reset();
-            },
-            child: const Text("Close"),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CoreWidget extends StatelessWidget {
+  final _Archive archiver;
+
+  const _CoreWidget({required this.archiver});
+
   @override
   Widget build(BuildContext context) {
-    final model = Provider.of<_Model>(context);
-
     return Column(
-      children: [Expanded(child: _FileTreeView(archive: model.archive))],
+      children: [Expanded(child: _FileTreeView(archive: archiver))],
     );
   }
 }
@@ -399,9 +303,9 @@ class _FileTreeNodeWidgetState extends State<_FileTreeNodeWidget> {
         FileEntryWidget(
           getResource: () async {
             final app = Provider.of<NativeApp>(context, listen: false);
-            final model = Provider.of<_Model>(context, listen: false);
+            final model = Provider.of<PFModel<_Archive>>(context, listen: false);
             final fileName = widget.node.name;
-            final archiver = model.archive;
+            final archiver = model.state;
 
             final ret = await _loadFile(
               app,

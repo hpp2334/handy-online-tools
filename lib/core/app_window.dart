@@ -210,7 +210,7 @@ class _TAppWindowWidgetState extends State<TAppWindowWidget> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(appWin.name),
+                            Expanded(child: Text(appWin.name, maxLines: 1, overflow: TextOverflow.ellipsis,)),
                             IconButton(
                               icon: const Icon(Icons.close, size: 16),
                               onPressed: () {
