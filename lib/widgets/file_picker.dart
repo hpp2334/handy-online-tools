@@ -3,8 +3,6 @@ import 'dart:typed_data';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:handy_online_tools/models/app_window.dart';
-import 'package:provider/provider.dart';
 
 class PickerBlob {
   DropItem? dropItem;
