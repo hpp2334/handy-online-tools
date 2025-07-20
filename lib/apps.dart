@@ -18,7 +18,7 @@ void initTApps(TAppRegistryModel m) {
       defaultSize: Point(300, 600),
       extensions: [".zip", ".7z"],
       iconData: Icons.folder_zip,
-      render: (props) => ZipViewerWidget(),
+      render: (props) => ZipViewerWidget(props: props),
     ),
   );
   m.add(
@@ -26,7 +26,7 @@ void initTApps(TAppRegistryModel m) {
       id: 2,
       name: "Image Viewer",
       defaultSize: Point(800, 600),
-      extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+      extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"],
       iconData: Icons.image,
       render: (props) => ImageViewerWidget(props: props),
     ),
@@ -51,6 +51,8 @@ void initTApps(TAppRegistryModel m) {
         ".proto",
         ".java",
         ".kt",
+        ".xml",
+        ".svg"
       ],
       iconData: Icons.data_object,
       render: (props) => CodeViewerWidget(props: props),
