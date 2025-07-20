@@ -115,7 +115,7 @@ class _PendingWidget extends StatefulWidget {
 class _PendingWidgetState extends State<_PendingWidget> {
   @override
   Widget build(BuildContext context) {
-    return FilePicker(
+    return FilePickerWidget(
       handleFile: (PickerBlob file) async {
         final app = Provider.of<NativeApp>(context, listen: false);
         final model = Provider.of<_Model>(context, listen: false);

@@ -123,7 +123,7 @@ class _LoadingWidget extends StatelessWidget {
 class _PendingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FilePicker(
+    return FilePickerWidget(
       handleFile: (PickerBlob file) async {
         final app = Provider.of<NativeApp>(context, listen: false);
         final model = Provider.of<_Model>(context, listen: false);

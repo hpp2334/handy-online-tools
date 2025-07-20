@@ -1,20 +1,35 @@
 import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:handy_online_tools/models/app_window.dart';
 import 'package:provider/provider.dart';
 
 class PickerBlob {
   DropItem? dropItem;
+  PlatformFile? platformFile;
 
-  PickerBlob(DropItem item) {
-    dropItem = item;
+  PickerBlob();
+
+  factory PickerBlob.fromDropItem(DropItem item) {
+    final ret = PickerBlob();
+    ret.dropItem = item;
+    return ret;
+  }
+  factory PickerBlob.fromFilePicker(PlatformFile file) {
+    assert(file.bytes != null);
+    final ret = PickerBlob();
+    ret.platformFile = file;
+    return ret;
   }
 
   String get name {
     if (dropItem != null) {
       return dropItem!.name;
+    }
+    if (platformFile != null) {
+      return platformFile!.name;
     }
     throw Exception("Unreachable");
   }
@@ -23,21 +38,39 @@ class PickerBlob {
     if (dropItem != null) {
       return dropItem!.readAsBytes();
     }
+    if (platformFile != null) {
+      return platformFile!.bytes!;
+    }
+
     throw Exception("Unreachable");
   }
 }
 
-class FilePicker extends StatefulWidget {
+class FilePickerWidget extends StatefulWidget {
   final Future<bool> Function(PickerBlob) handleFile;
 
-  const FilePicker({super.key, required this.handleFile});
+  const FilePickerWidget({super.key, required this.handleFile});
 
   @override
-  State<FilePicker> createState() => _FilePickerState();
+  State<FilePickerWidget> createState() => _FilePickerWidgetState();
 }
 
-class _FilePickerState extends State<FilePicker> {
+class _FilePickerWidgetState extends State<FilePickerWidget> {
   bool _dragging = false;
+
+  Future<void> handlePickerBlob(BuildContext context, PickerBlob blob) async {
+    final success = await widget.handleFile(blob);
+
+    if (!context.mounted) {
+      return;
+    }
+    if (success) {
+      Provider.of<TAppWindowModel>(
+        context,
+        listen: false,
+      ).setTitle(blob.name);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,17 +80,7 @@ class _FilePickerState extends State<FilePicker> {
           return;
         }
         final file = details.files.first;
-        final success = await widget.handleFile(PickerBlob(file));
-
-        if (!context.mounted) {
-          return;
-        }
-        if (success) {
-          Provider.of<TAppWindowModel>(
-            context,
-            listen: false,
-          ).setTitle(file.name);
-        }
+        await handlePickerBlob(context, PickerBlob.fromDropItem(file));
       },
       onDragEntered: (details) {
         setState(() {
@@ -69,17 +92,28 @@ class _FilePickerState extends State<FilePicker> {
           _dragging = false;
         });
       },
-      child: Container(
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_upload, size: 50),
-            if (!_dragging)
-              const Text("Drag and drop file here")
-            else
-              const Text("Release to accept"),
-          ],
+      child: InkWell(
+        onTap: () async {
+          final result = await FilePicker.platform.pickFiles();
+          if (context.mounted && result != null && result.files.isNotEmpty) {
+            final file = result.files.first;
+            if (file.bytes != null) {
+              await handlePickerBlob(context, PickerBlob.fromFilePicker(file));
+            }
+          }
+        },
+        child: Container(
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.cloud_upload, size: 50),
+              if (!_dragging)
+                const Text("Drag and drop file here")
+              else
+                const Text("Release to accept"),
+            ],
+          ),
         ),
       ),
     );
