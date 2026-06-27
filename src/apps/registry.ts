@@ -2,6 +2,7 @@ import { zipViewerApp } from '@/apps/zip-viewer'
 import { imageViewerApp } from '@/apps/image-viewer'
 import { codeViewerApp } from '@/apps/code-viewer'
 import { clipboardInspectorApp } from '@/apps/clipboard-inspector'
+import { opencodeSessionApp } from '@/apps/opencode-session'
 import type { AppDef } from '@/types'
 
 const apps: AppDef[] = [
@@ -9,6 +10,7 @@ const apps: AppDef[] = [
   imageViewerApp,
   codeViewerApp,
   clipboardInspectorApp,
+  opencodeSessionApp,
 ]
 
 const byId = new Map(apps.map((a) => [a.id, a]))
