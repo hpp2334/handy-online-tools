@@ -3,6 +3,7 @@ import { imageViewerApp } from '@/apps/image-viewer'
 import { codeViewerApp } from '@/apps/code-viewer'
 import { clipboardInspectorApp } from '@/apps/clipboard-inspector'
 import { opencodeSessionApp } from '@/apps/opencode-session'
+import { sqliteViewerApp } from '@/apps/sqlite-viewer'
 import type { AppDef } from '@/types'
 
 const apps: AppDef[] = [
@@ -11,6 +12,7 @@ const apps: AppDef[] = [
   codeViewerApp,
   clipboardInspectorApp,
   opencodeSessionApp,
+  sqliteViewerApp,
 ]
 
 const byId = new Map(apps.map((a) => [a.id, a]))

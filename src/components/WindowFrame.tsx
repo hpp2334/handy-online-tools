@@ -20,7 +20,7 @@ interface DragState {
 
 const EDGE = 8
 
-function onEdge(localX: number, localY: number, b: WinBounds): ResizeDir | null {
+function onEdge(localX: number, localY: number, b: { w: number; h: number }): ResizeDir | null {
   const left = localX <= EDGE
   const right = localX >= b.w - EDGE
   const top = localY <= EDGE
@@ -77,11 +77,20 @@ export function WindowFrame({ win }: { win: AppWindow }) {
       const dy = e.clientY - d.startY
       let { x, y, w, h } = d.startBounds
 
+      const left = d.mode === 'left' || d.mode === 'tl' || d.mode === 'bl'
+      const right = d.mode === 'right' || d.mode === 'tr' || d.mode === 'br'
+      const top = d.mode === 'top' || d.mode === 'tl' || d.mode === 'tr'
+      const bottom = d.mode === 'bottom' || d.mode === 'bl' || d.mode === 'br'
+
       const applyX = (leftDelta: number, widthDelta: number) => {
         const newW = d.startBounds.w - widthDelta
         if (newW >= MIN_W) {
           x = d.startBounds.x + leftDelta
           w = newW
+        } else {
+          const maxLeftDelta = d.startBounds.w - MIN_W
+          x = d.startBounds.x + Math.min(leftDelta, maxLeftDelta)
+          w = MIN_W
         }
       }
       const applyY = (topDelta: number, heightDelta: number) => {
@@ -89,6 +98,10 @@ export function WindowFrame({ win }: { win: AppWindow }) {
         if (newH >= MIN_H) {
           y = d.startBounds.y + topDelta
           h = newH
+        } else {
+          const maxTopDelta = d.startBounds.h - MIN_H
+          y = d.startBounds.y + Math.min(topDelta, maxTopDelta)
+          h = MIN_H
         }
       }
 
@@ -96,11 +109,10 @@ export function WindowFrame({ win }: { win: AppWindow }) {
         x = d.startBounds.x + dx
         y = d.startBounds.y + dy
       } else {
-        if (d.mode.includes('left')) applyX(dx, dx)
-        if (d.mode.includes('right')) w = Math.max(MIN_W, d.startBounds.w + dx)
-        if (d.mode.includes('top')) applyY(dy, dy)
-        if (d.mode.includes('bottom'))
-          h = Math.max(MIN_H, d.startBounds.h + dy)
+        if (left) applyX(dx, dx)
+        if (right) w = Math.max(MIN_W, d.startBounds.w + dx)
+        if (top) applyY(dy, dy)
+        if (bottom) h = Math.max(MIN_H, d.startBounds.h + dy)
       }
 
       updateBounds(win.id, { x, y, w, h })
@@ -144,7 +156,10 @@ export function WindowFrame({ win }: { win: AppWindow }) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const localX = e.clientX - rect.left
     const localY = e.clientY - rect.top
-    const dir = onEdge(localX, localY, bounds)
+    const dir = onEdge(localX, localY, {
+      w: bounds.w + EDGE * 2,
+      h: bounds.h + BAR_H + EDGE * 2,
+    })
     setCursor(cursorFor(dir ?? null))
   }
 
